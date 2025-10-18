@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+/// 设备信息表，用于存储注册的Android设备详细信息
+model Device {
+  /// 主键ID，自增
+  id          Int      @id @default(autoincrement())
+  /// 设备序列号，唯一标识设备
+  serial_no   String   @unique
+  /// Android ID，设备唯一标识符
+  android_id  String?
+  /// 启动ID，每次重启后会变化
+  boot_id     String?
+  /// 蓝牙MAC地址
+  ble_mac     String?
+  /// 设备型号
+  model       String?
+  /// 设备市场名称
+  market_name String?
+  /// Android系统版本
+  version     String?
+  /// 内核版本
+  kernel_ver  String?
+  /// ADB是否启用（0或1）
+  adb_enabled String?
+  /// ADB端口号，默认5555
+  adb_port    String?
+  /// ADB守护进程状态
+  adb_status  String?
+  /// ADB守护进程PID
+  adb_pid     String?
+  /// 网络接口名称
+  iface       String?
+  /// 源IP地址
+  src_ip      String?
+  /// 网络接口IP地址
+  iface_ip    String?
+  /// 记录创建时间
+  createdAt   DateTime @default(now())
+  /// 记录更新时间
+  updatedAt   DateTime @updatedAt
+}

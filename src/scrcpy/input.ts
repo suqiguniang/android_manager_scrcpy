@@ -1,0 +1,166 @@
+import { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } from "@yume-chan/adb-scrcpy";
+import { type Disposable } from "@yume-chan/event";
+import {
+    AndroidKeyCode,
+    AndroidKeyEventAction,
+    AndroidKeyEventMeta,
+} from "@yume-chan/scrcpy";
+
+export interface KeyboardInjector extends Disposable {
+    down(key: AndroidKeyCode): Promise<void>;
+    up(key: AndroidKeyCode): Promise<void>;
+    reset(): Promise<void>;
+}
+
+export class ScrcpyKeyboardInjector implements KeyboardInjector {
+    private readonly client: AdbScrcpyClient<AdbScrcpyOptions3_3_3<true>>;
+
+    private _controlLeft = false;
+    private _controlRight = false;
+    private _shiftLeft = false;
+    private _shiftRight = false;
+    private _altLeft = false;
+    private _altRight = false;
+    private _metaLeft = false;
+    private _metaRight = false;
+
+    private _capsLock = false;
+    private _numLock = true;
+
+    private _keys: Set<AndroidKeyCode> = new Set();
+
+    public constructor(client: AdbScrcpyClient<AdbScrcpyOptions3_3_3<true>>) {
+        this.client = client;
+    }
+
+    private setModifier(keyCode: AndroidKeyCode, value: boolean) {
+        switch (keyCode) {
+            case AndroidKeyCode.ControlLeft:
+                this._controlLeft = value;
+                break;
+            case AndroidKeyCode.ControlRight:
+                this._controlRight = value;
+                break;
+            case AndroidKeyCode.ShiftLeft:
+                this._shiftLeft = value;
+                break;
+            case AndroidKeyCode.ShiftRight:
+                this._shiftRight = value;
+                break;
+            case AndroidKeyCode.AltLeft:
+                this._altLeft = value;
+                break;
+            case AndroidKeyCode.AltRight:
+                this._altRight = value;
+                break;
+            case AndroidKeyCode.MetaLeft:
+                this._metaLeft = value;
+                break;
+            case AndroidKeyCode.MetaRight:
+                this._metaRight = value;
+                break;
+            case AndroidKeyCode.CapsLock:
+                if (value) {
+                    this._capsLock = !this._capsLock;
+                }
+                break;
+            case AndroidKeyCode.NumLock:
+                if (value) {
+                    this._numLock = !this._numLock;
+                }
+                break;
+        }
+    }
+
+    private getMetaState(): AndroidKeyEventMeta {
+        let metaState = 0;
+        if (this._altLeft) {
+            metaState |=
+                AndroidKeyEventMeta.Alt | AndroidKeyEventMeta.AltLeft;
+        }
+        if (this._altRight) {
+            metaState |=
+                AndroidKeyEventMeta.Alt | AndroidKeyEventMeta.AltRight;
+        }
+        if (this._shiftLeft) {
+            metaState |=
+                AndroidKeyEventMeta.Shift | AndroidKeyEventMeta.ShiftLeft;
+        }
+        if (this._shiftRight) {
+            metaState |=
+                AndroidKeyEventMeta.Shift | AndroidKeyEventMeta.ShiftRight;
+        }
+        if (this._controlLeft) {
+            metaState |=
+                AndroidKeyEventMeta.Ctrl | AndroidKeyEventMeta.CtrlLeft;
+        }
+        if (this._controlRight) {
+            metaState |=
+                AndroidKeyEventMeta.Ctrl | AndroidKeyEventMeta.CtrlRight;
+        }
+        if (this._metaLeft) {
+            metaState |=
+                AndroidKeyEventMeta.Meta | AndroidKeyEventMeta.MetaLeft;
+        }
+        if (this._metaRight) {
+            metaState |=
+                AndroidKeyEventMeta.Meta | AndroidKeyEventMeta.MetaRight;
+        }
+        if (this._capsLock) {
+            metaState |= AndroidKeyEventMeta.CapsLock;
+        }
+        if (this._numLock) {
+            metaState |= AndroidKeyEventMeta.NumLock;
+        }
+        return metaState as AndroidKeyEventMeta;
+    }
+
+    public async down(keyCode: AndroidKeyCode): Promise<void> {
+        if (!keyCode) {
+            return;
+        }
+
+        this.setModifier(keyCode, true);
+        this._keys.add(keyCode);
+        await this.client.controller?.injectKeyCode({
+            action: AndroidKeyEventAction.Down,
+            keyCode,
+            metaState: this.getMetaState(),
+            repeat: 0,
+        });
+    }
+
+    public async up(keyCode: AndroidKeyCode): Promise<void> {
+        if (!keyCode) {
+            return;
+        }
+
+        this.setModifier(keyCode, false);
+        this._keys.delete(keyCode);
+        await this.client.controller?.injectKeyCode({
+            action: AndroidKeyEventAction.Up,
+            keyCode,
+            metaState: this.getMetaState(),
+            repeat: 0,
+        });
+    }
+
+    public async reset(): Promise<void> {
+        this._controlLeft = false;
+        this._controlRight = false;
+        this._shiftLeft = false;
+        this._shiftRight = false;
+        this._altLeft = false;
+        this._altRight = false;
+        this._metaLeft = false;
+        this._metaRight = false;
+        for (const key of this._keys) {
+            this.up(key);
+        }
+        this._keys.clear();
+    }
+
+    public dispose(): void {
+        // do nothing
+    }
+}
