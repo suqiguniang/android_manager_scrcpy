@@ -1,4 +1,4 @@
-# android_master_scrcpy - Android Management & Control
+# AMC - Android Management & Control
 
 <div align="center">
 
@@ -433,9 +433,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- **Repository**: https://github.com/o2e/android_master_scrcpy
-- **Issues**: https://github.com/o2e/android_master_scrcpy/issues
-- **Pull Requests**: https://github.com/o2e/android_master_scrcpy/pulls
+- **Repository**: https://github.com/o2e/android_manager_scrcpy
+- **Issues**: https://github.com/o2e/android_manager_scrcpy/issues
+- **Pull Requests**: https://github.com/o2e/android_manager_scrcpy/pulls
 
 ---
 
