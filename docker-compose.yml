@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    image: android-manager-scrcpy:latest
+    container_name: android-manager
+    restart: unless-stopped
+    # Network mode host is recommended for ADB device discovery
+    network_mode: host
+    # Privileged mode is required for USB device access
+    privileged: true
+    volumes:
+      - ./certs:/app/certs
+      - ./prisma/dev.db:/app/prisma/dev.db
+      - ./adb-keys:/root/.android
+      - /dev/bus/usb:/dev/bus/usb
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    # If using host network, ports mapping is ignored, but helpful for documentation
+    # ports:
+    #   - "8080:8080"

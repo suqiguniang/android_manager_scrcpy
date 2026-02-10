@@ -3,8 +3,8 @@ import {
     AndroidMotionEventButton,
     ScrcpyPointerId,
 } from "@yume-chan/scrcpy";
-import {type MouseEvent, type PointerEvent, useCallback, useEffect, useRef} from "react";
-import {AdbScrcpyClient, AdbScrcpyOptions3_3_3} from "@yume-chan/adb-scrcpy";
+import { type MouseEvent, type PointerEvent, useCallback, useEffect, useRef } from "react";
+import { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } from "@yume-chan/adb-scrcpy";
 import * as React from "react";
 
 const MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON = [
@@ -21,9 +21,10 @@ interface TouchControlProps {
     screenHeight: number;
     rotation?: number; // 屏幕旋转角度（度数）：0, 90, 180, 270
     children?: React.ReactNode;
+    onTouchEvent?: (event: any) => void; // Callback for recording touch events
 }
 
-export function TouchControl({client, screenWidth, screenHeight, rotation = 0, children}: TouchControlProps) {
+export function TouchControl({ client, screenWidth, screenHeight, rotation = 0, children, onTouchEvent }: TouchControlProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
     /**
@@ -33,16 +34,16 @@ export function TouchControl({client, screenWidth, screenHeight, rotation = 0, c
      * @returns 设备坐标 {x, y}
      */
     const clientPositionToDevicePosition = useCallback((clientX: number, clientY: number) => {
-        if (!containerRef.current) return {x: 0, y: 0};
+        if (!containerRef.current) return { x: 0, y: 0 };
 
         const viewRect = containerRef.current.getBoundingClientRect();
-        
+
         // 归一化坐标（0-1）
         const normalizedX = Math.max(0, Math.min(1, (clientX - viewRect.x) / viewRect.width));
         const normalizedY = Math.max(0, Math.min(1, (clientY - viewRect.y) / viewRect.height));
 
         let deviceX: number, deviceY: number;
-        
+
         // 根据旋转角度转换坐标
         switch (rotation) {
             case 90:
@@ -66,14 +67,14 @@ export function TouchControl({client, screenWidth, screenHeight, rotation = 0, c
                 deviceY = screenHeight * normalizedY;
         }
 
-        return {x: deviceX, y: deviceY};
+        return { x: deviceX, y: deviceY };
     }, [screenWidth, screenHeight, rotation]);
 
     // 注入触摸事件
     const injectTouch = (action: AndroidMotionEventAction, e: PointerEvent<HTMLDivElement>) => {
         if (!client?.controller) return;
 
-        const {pointerType} = e;
+        const { pointerType } = e;
         let pointerId: bigint;
         if (pointerType === "mouse") {
             // Android 13 has bug with mouse injection
@@ -82,10 +83,9 @@ export function TouchControl({client, screenWidth, screenHeight, rotation = 0, c
             pointerId = BigInt(e.pointerId);
         }
 
-        const {x, y} = clientPositionToDevicePosition(e.clientX, e.clientY);
+        const { x, y } = clientPositionToDevicePosition(e.clientX, e.clientY);
 
-        // 发送触摸事件（使用当前视频尺寸）
-        client.controller?.injectTouch({
+        const touchMsg = {
             action: action,
             pointerId: pointerId,
             videoWidth: screenWidth,
@@ -95,7 +95,13 @@ export function TouchControl({client, screenWidth, screenHeight, rotation = 0, c
             pressure: e.pressure,
             actionButton: MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON[e.button],
             buttons: e.buttons,
-        });
+        };
+
+        // 发送触摸事件（使用当前视频尺寸）
+        client.controller?.injectTouch(touchMsg);
+
+        // Call recording callback if provided
+        onTouchEvent?.(touchMsg);
     };
 
     // 处理鼠标按下
@@ -160,7 +166,7 @@ export function TouchControl({client, screenWidth, screenHeight, rotation = 0, c
             e.stopPropagation();
 
             // 使用统一的坐标转换方法
-            const {x, y} = clientPositionToDevicePosition(e.clientX, e.clientY);
+            const { x, y } = clientPositionToDevicePosition(e.clientX, e.clientY);
 
             // 使用当前视频尺寸
             client.controller?.injectScroll({
@@ -174,7 +180,7 @@ export function TouchControl({client, screenWidth, screenHeight, rotation = 0, c
             });
         };
 
-        container.addEventListener('wheel', handleWheel, {passive: false});
+        container.addEventListener('wheel', handleWheel, { passive: false });
 
         return () => {
             container.removeEventListener('wheel', handleWheel);

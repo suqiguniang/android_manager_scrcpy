@@ -50,3 +50,10 @@ model Device {
   /// 记录更新时间
   updatedAt   DateTime @updatedAt
 }
+
+model Macro {
+  id        Int      @id @default(autoincrement())
+  name      String
+  content   String   // JSON string of events
+  createdAt DateTime @default(now())
+}

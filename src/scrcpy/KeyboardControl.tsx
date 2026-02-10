@@ -1,14 +1,14 @@
-import {useEffect, useRef} from "react";
-import {AndroidKeyCode} from "@yume-chan/scrcpy";
-import {ScrcpyKeyboardInjector} from "./input.ts";
-import {AdbScrcpyClient, AdbScrcpyOptions3_3_3} from "@yume-chan/adb-scrcpy";
+import { useEffect, useRef } from "react";
+import { AndroidKeyCode } from "@yume-chan/scrcpy";
+import { ScrcpyKeyboardInjector } from "./input.ts";
+import { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } from "@yume-chan/adb-scrcpy";
 
 interface KeyboardControlProps {
     client: AdbScrcpyClient<AdbScrcpyOptions3_3_3<boolean>> | null;
     enabled: boolean;
 }
 
-// 浏览器按键码映射到 Android 按键码
+// Browser key code mapping to Android key code
 const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'Backspace': AndroidKeyCode.Backspace,
     'Enter': AndroidKeyCode.Enter,
@@ -32,7 +32,7 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'Pause': AndroidKeyCode.Pause,
     'ContextMenu': AndroidKeyCode.ContextMenu,
 
-    // 字母
+    // Letters
     'KeyA': AndroidKeyCode.KeyA,
     'KeyB': AndroidKeyCode.KeyB,
     'KeyC': AndroidKeyCode.KeyC,
@@ -60,7 +60,7 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'KeyY': AndroidKeyCode.KeyY,
     'KeyZ': AndroidKeyCode.KeyZ,
 
-    // 数字
+    // Numbers
     'Digit0': AndroidKeyCode.Digit0,
     'Digit1': AndroidKeyCode.Digit1,
     'Digit2': AndroidKeyCode.Digit2,
@@ -72,7 +72,7 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'Digit8': AndroidKeyCode.Digit8,
     'Digit9': AndroidKeyCode.Digit9,
 
-    // 符号键
+    // Symbols
     'Comma': AndroidKeyCode.Comma,
     'Period': AndroidKeyCode.Period,
     'Minus': AndroidKeyCode.Minus,
@@ -85,7 +85,7 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'Slash': AndroidKeyCode.Slash,
     'Backquote': AndroidKeyCode.Backquote,
 
-    // 功能键
+    // Function keys
     'F1': AndroidKeyCode.F1,
     'F2': AndroidKeyCode.F2,
     'F3': AndroidKeyCode.F3,
@@ -99,7 +99,7 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'F11': AndroidKeyCode.F11,
     'F12': AndroidKeyCode.F12,
 
-    // 小键盘数字
+    // Numpad Numbers
     'Numpad0': AndroidKeyCode.Numpad0,
     'Numpad1': AndroidKeyCode.Numpad1,
     'Numpad2': AndroidKeyCode.Numpad2,
@@ -111,7 +111,7 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'Numpad8': AndroidKeyCode.Numpad8,
     'Numpad9': AndroidKeyCode.Numpad9,
 
-    // 小键盘运算符
+    // Numpad Operators
     'NumpadDivide': AndroidKeyCode.NumpadDivide,
     'NumpadMultiply': AndroidKeyCode.NumpadMultiply,
     'NumpadSubtract': AndroidKeyCode.NumpadSubtract,
@@ -119,7 +119,7 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'NumpadDecimal': AndroidKeyCode.NumpadDecimal,
     'NumpadEnter': AndroidKeyCode.NumpadEnter,
 
-    // 修饰键
+    // Modifiers
     'ShiftLeft': AndroidKeyCode.ShiftLeft,
     'ShiftRight': AndroidKeyCode.ShiftRight,
     'ControlLeft': AndroidKeyCode.ControlLeft,
@@ -130,44 +130,44 @@ const KEY_CODE_MAP: Record<string, AndroidKeyCode> = {
     'MetaRight': AndroidKeyCode.MetaRight,
 };
 
-export function KeyboardControl({client, enabled}: KeyboardControlProps) {
+export function KeyboardControl({ client, enabled }: KeyboardControlProps) {
     const keyboardInjectorRef = useRef<ScrcpyKeyboardInjector | null>(null);
 
     useEffect(() => {
         if (!client || !enabled) return;
 
-        // 创建键盘注入器
+        // Create keyboard injector
         const keyboard = new ScrcpyKeyboardInjector(client);
         keyboardInjectorRef.current = keyboard;
 
         const handleKeyDown = async (e: KeyboardEvent) => {
-            // 特殊处理：Ctrl+V 粘贴剪贴板内容
+            // Special handling: Ctrl+V for clipboard paste
             if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV') {
                 e.preventDefault();
                 e.stopPropagation();
 
                 try {
-                    // 读取浏览器剪贴板内容
+                    // Read clipboard content
                     const text = await navigator.clipboard.readText();
                     if (text && client?.controller) {
-                        // 通过剪贴板方式实现粘贴（支持中文）
-                        // 1. 将文本设置到设备剪贴板
+                        // Paste via clipboard (supports Chinese/non-ASCII)
+                        // 1. Set text to device clipboard
                         await client.controller.setClipboard({
-                            sequence: 0n,  // 0n 表示不等待设备确认
-                            paste: true,  // false 表示只设置剪贴板，不自动粘贴
+                            sequence: 0n,  // 0n means do not wait for acknowledgement
+                            paste: true,  // false means just set clipboard, true means paste
                             content: text
                         });
 
 
                     }
                 } catch (err) {
-                    console.error('粘贴失败:', err);
-                    console.warn('请确保已授予剪贴板读取权限');
+                    console.error('Paste failed:', err);
+                    console.warn('Please ensure clipboard permissions are granted');
                 }
                 return;
             }
 
-            // 阻止默认行为（如浏览器快捷键）
+            // Prevent default behavior (e.g., browser shortcuts)
             const androidKey = KEY_CODE_MAP[e.code];
             if (androidKey) {
                 e.preventDefault();
@@ -177,7 +177,7 @@ export function KeyboardControl({client, enabled}: KeyboardControlProps) {
         };
 
         const handleKeyUp = async (e: KeyboardEvent) => {
-            // Ctrl+V 在 keydown 中已处理，keyup 时直接返回
+            // Ctrl+V handled in keydown
             if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -192,12 +192,12 @@ export function KeyboardControl({client, enabled}: KeyboardControlProps) {
             }
         };
 
-        // 添加全局键盘监听器
+        // Add global keyboard listeners
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
         return () => {
-            // 清理
+            // Cleanup
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             keyboard.reset();
@@ -206,6 +206,6 @@ export function KeyboardControl({client, enabled}: KeyboardControlProps) {
         };
     }, [client, enabled]);
 
-    return null; // 此组件不渲染任何 UI
+    return null; // No UI
 }
 

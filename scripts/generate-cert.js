@@ -25,8 +25,13 @@ if (!existsSync(certDir)) {
 
 try {
     // 生成自签名证书（有效期 365 天）
+    // Use absolute path for OpenSSL on Windows if available
+    const opensslPath = process.platform === 'win32' && existsSync('C:\\Program Files\\Git\\usr\\bin\\openssl.exe')
+        ? '"C:\\Program Files\\Git\\usr\\bin\\openssl.exe"'
+        : 'openssl';
+
     execSync(
-        `openssl req -x509 -newkey rsa:2048 -nodes -sha256 -subj '/CN=localhost' ` +
+        `${opensslPath} req -x509 -newkey rsa:2048 -nodes -sha256 -subj '/CN=localhost' ` +
         `-keyout "${keyPath}" -out "${certPath}" -days 365`,
         { stdio: 'inherit' }
     );

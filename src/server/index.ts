@@ -1,14 +1,15 @@
 import Fastify from "fastify";
-import {PrismaClient} from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import websocketPlugin from "@fastify/websocket";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
-import {config} from "./config.js";
-import {deviceRoutes} from "./routes/device.routes.js";
-import {adbRoutes} from "./routes/adb.routes.js";
+import { config } from "./config.js";
+import { deviceRoutes } from "./routes/device.routes.js";
+import { adbRoutes } from "./routes/adb.routes.js";
+import { macroRoutes } from "./routes/macro.routes.js";
 import fs from "fs";
 import path from "path";
-import {fileURLToPath} from "url";
+import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 尝试加载 SSL 证书
@@ -26,7 +27,7 @@ const fastify = Fastify({
     },
     logger: {
         level: process.env.LOG_LEVEL || 'info',
-        transport: {
+        transport: process.env.NODE_ENV !== 'production' ? {
             target: 'pino-pretty',
             options: {
                 translateTime: 'HH:MM:ss Z',
@@ -34,12 +35,12 @@ const fastify = Fastify({
                 colorize: true,
                 singleLine: true
             }
-        }
+        } : undefined
     },
 });
 
 // 注册插件
-await fastify.register(websocketPlugin, {options: {maxPayload: config.websocket.maxPayload}});
+await fastify.register(websocketPlugin, { options: { maxPayload: config.websocket.maxPayload } });
 
 await fastify.register(cookie, config.cookie);
 
@@ -66,13 +67,6 @@ try {
 }
 
 // 健康检查
-fastify.get("/", async () => {
-    return {
-        message: "Fastify + Prisma + SQLite 正常运行！",
-        uptime: process.uptime()
-    };
-});
-
 fastify.get("/health", async () => {
     try {
         await prisma.$queryRaw`SELECT 1`;
@@ -90,14 +84,45 @@ fastify.get("/health", async () => {
     }
 });
 
+if (process.env.NODE_ENV === 'production') {
+    const distPath = path.resolve(__dirname, '../../dist');
+    const staticPlugin = await import('@fastify/static');
+    await fastify.register(staticPlugin.default, {
+        root: distPath,
+        prefix: '/',
+    });
+
+    // SPA Fallback: Serve index.html for unknown routes
+    fastify.setNotFoundHandler((req, reply) => {
+        if (req.raw.url && req.raw.url.startsWith('/api')) {
+            reply.status(404).send({ error: 'Not Found' });
+            return;
+        }
+        reply.sendFile('index.html');
+    });
+} else {
+    fastify.get("/", async () => {
+        return {
+            message: "Fastify + Prisma + SQLite 正常运行！(Development Mode)",
+            uptime: process.uptime()
+        };
+    });
+}
+
+
+
 
 await fastify.register(async (fastify) => {
     await deviceRoutes(fastify, prisma);
-});
+}, { prefix: "/api/devices" });
 
 await fastify.register(async (fastify) => {
     await adbRoutes(fastify);
-});
+}, { prefix: "/api/adb" });
+
+await fastify.register(async (fastify) => {
+    await macroRoutes(fastify);
+}, { prefix: "/api/macros" });
 
 // 全局错误处理
 fastify.setErrorHandler((error, request, reply) => {
@@ -119,17 +144,11 @@ fastify.setErrorHandler((error, request, reply) => {
     });
 });
 
-// 404 处理
-fastify.setNotFoundHandler((request, reply) => {
-    reply.status(404).send({
-        error: "Not Found",
-        message: `Route ${request.method} ${request.url} not found`
-    });
-});
+
 
 // 启动服务器
 try {
-    await fastify.listen({host: config.server.host, port: config.server.port});
+    await fastify.listen({ host: config.server.host, port: config.server.port });
 } catch (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+platform-tools
+*.log
+dev.db
+cert.pem
+key.pem
+deploy.tar
+deploy.tar.gz
+deploy_v2.tar.gz

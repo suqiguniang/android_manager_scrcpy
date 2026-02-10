@@ -1,4 +1,4 @@
-import {defineConfig} from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from "path"
@@ -24,6 +24,14 @@ export default defineConfig({
         headers: {
             'Cross-Origin-Opener-Policy': 'same-origin',
             'Cross-Origin-Embedder-Policy': 'require-corp',
+        },
+        proxy: {
+            '/api': {
+                target: 'https://192.168.50.226:8080',
+                changeOrigin: true,
+                secure: false,
+                ws: true,
+            },
         },
     },
     optimizeDeps: {

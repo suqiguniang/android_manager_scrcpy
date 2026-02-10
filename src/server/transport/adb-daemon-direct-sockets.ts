@@ -1,10 +1,10 @@
-import type {AdbDaemonDevice} from "@yume-chan/adb";
-import {AdbPacket, AdbPacketSerializeStream} from "@yume-chan/adb";
+import type { AdbDaemonDevice } from "@yume-chan/adb";
+import { AdbPacket, AdbPacketSerializeStream } from "@yume-chan/adb";
 import {
     StructDeserializeStream,
     WrapWritableStream, Consumable,
 } from "@yume-chan/stream-extra";
-import {TCPSocket} from "@/server/transport/tcp-socket";
+import { TCPSocket } from "./tcp-socket";
 
 export interface AdbDaemonDirectSocketDeviceOptions {
     host: string;
@@ -43,7 +43,7 @@ export class AdbDaemonDirectSocketsDevice implements AdbDaemonDevice {
             noDelay: true,
             unref: this.#options.unref,
         });
-        const {readable, writable} = await socket.opened;
+        const { readable, writable } = await socket.opened;
         const writer = writable.getWriter();
 
         return {

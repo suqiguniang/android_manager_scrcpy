@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 /src/generated/prisma
+/prisma/dev.db
 
 # SSL Certificates
 /wadbd-4.7/

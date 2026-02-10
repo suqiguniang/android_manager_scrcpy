@@ -1,29 +1,29 @@
-import {useEffect, useState} from 'react'
-import {BrowserRouter as Router, Routes, Route, useNavigate} from 'react-router-dom'
-import {Smartphone, AlertCircle, ArrowUpRightIcon, Terminal, Folder, Plus} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
+import { Smartphone, AlertCircle, ArrowUpRightIcon, Terminal, Folder, Plus } from 'lucide-react'
 import DeviceDetail from './scrcpy/DeviceDetail'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from './components/ui/card'
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from './components/ui/table'
-import {Skeleton} from './components/ui/skeleton'
-import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "./components/ui/empty";
-import {Button} from "@/components/ui/button.tsx";
-import {Badge} from "@/components/ui/badge.tsx";
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from './components/ui/dialog';
-import {Input} from './components/ui/input';
-import {Label} from './components/ui/label';
-import type {DeviceBasicInfo} from './types/device.types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table'
+import { Skeleton } from './components/ui/skeleton'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./components/ui/empty";
+import { Button } from "@/components/ui/button.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './components/ui/dialog';
+import { Input } from './components/ui/input';
+import { Label } from './components/ui/label';
+import type { DeviceBasicInfo } from './types/device.types';
 
-// 设备状态映射
+// Device status mapping
 const getDeviceStateBadge = (state: string) => {
     const stateMap: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string }> = {
-        'device': {variant: 'default', label: '在线'},
-        'offline': {variant: 'destructive', label: '离线'},
-        'unauthorized': {variant: 'outline', label: '未授权'},
+        'device': { variant: 'default', label: 'Online' },
+        'offline': { variant: 'destructive', label: 'Offline' },
+        'unauthorized': { variant: 'outline', label: 'Unauthorized' },
     };
-    return stateMap[state] || {variant: 'secondary', label: state};
+    return stateMap[state] || { variant: 'secondary', label: state };
 };
 
-// 设备列表组件
+// Device List Component
 function DeviceList() {
     const navigate = useNavigate();
     const [devices, setDevices] = useState<DeviceBasicInfo[]>([]);
@@ -36,32 +36,32 @@ function DeviceList() {
         let socket: WebSocket | null = null;
 
         try {
-            socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8080/devices`);
+            socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8080/api/adb/devices`);
 
             socket.addEventListener('open', () => {
                 setIsLoading(false);
                 setError(undefined);
             });
 
-            socket.addEventListener('message', ({data}) => {
+            socket.addEventListener('message', ({ data }) => {
                 try {
                     setDevices(JSON.parse(data));
                     setIsLoading(false);
                 } catch (err) {
-                    setError('解析设备数据失败' + err);
+                    setError('Failed to parse device data: ' + err);
                 }
             });
 
             socket.addEventListener('error', () => {
-                setError('WebSocket 连接失败');
+                setError('WebSocket connection failed');
                 setIsLoading(false);
             });
 
             socket.addEventListener('close', () => {
-                setError('WebSocket 连接已断开');
+                setError('WebSocket disconnected');
             });
         } catch (err) {
-            setError('无法建立 WebSocket 连接' + err);
+            setError('Could not establish WebSocket connection: ' + err);
             setIsLoading(false);
         }
 
@@ -70,34 +70,37 @@ function DeviceList() {
         };
     }, []);
 
+    // Show all devices (no filtering)
+    const filteredDevices = devices;
+
     return (
         <div className="container mx-auto p-6 max-w-7xl">
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle>设备管理</CardTitle>
+                            <CardTitle>Device Management</CardTitle>
                             <CardDescription>
-                                已连接到服务器的 ADB 设备
+                                ADB devices connected to the server
                             </CardDescription>
                         </div>
                         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm">
-                                    <Plus className="h-4 w-4 mr-2"/>
-                                    添加设备
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Device
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader>
-                                    <DialogTitle>添加设备</DialogTitle>
+                                    <DialogTitle>Add Device</DialogTitle>
                                     <DialogDescription>
-                                        输入设备的 IP 地址和端口（例如：192.168.1.100:5555）
+                                        Enter device IP and port (e.g., 192.168.1.100:5555)
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="serial">设备地址</Label>
+                                        <Label htmlFor="serial">Device Address</Label>
                                         <Input
                                             id="serial"
                                             placeholder="192.168.1.100:5555"
@@ -121,7 +124,7 @@ function DeviceList() {
                                             setSerialInput('');
                                         }}
                                     >
-                                        取消
+                                        Cancel
                                     </Button>
                                     <Button
                                         onClick={() => {
@@ -133,7 +136,7 @@ function DeviceList() {
                                         }}
                                         disabled={!serialInput.trim()}
                                     >
-                                        连接
+                                        Connect
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
@@ -143,31 +146,44 @@ function DeviceList() {
                 <CardContent>
                     {isLoading ? (
                         <div className="space-y-2">
-                            <Skeleton className="h-10 w-full"/>
-                            <Skeleton className="h-16 w-full"/>
-                            <Skeleton className="h-16 w-full"/>
-                            <Skeleton className="h-16 w-full"/>
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-16 w-full" />
+                            <Skeleton className="h-16 w-full" />
+                            <Skeleton className="h-16 w-full" />
                         </div>
                     ) : error ? (
                         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-destructive"/>
+                            <AlertCircle className="h-4 w-4 text-destructive" />
                             <p className="text-sm text-destructive font-medium">{error}</p>
                         </div>
-                    ) : devices && devices.length > 0 ? (
+                    ) : filteredDevices && filteredDevices.length > 0 ? (
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>设备名称</TableHead>
-                                    <TableHead>序列号</TableHead>
-                                    <TableHead className="text-center">传输 ID</TableHead>
-                                    <TableHead className="text-center">状态</TableHead>
-                                    <TableHead className="text-center">操作</TableHead>
+                                    <TableHead>Model</TableHead>
+                                    <TableHead className="text-center">Actions</TableHead>
+                                    <TableHead>Serial</TableHead>
+                                    <TableHead className="text-center">Transport ID</TableHead>
+                                    <TableHead className="text-center">Status</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {devices.map((device) => (
-                                    <TableRow key={device.serial+device.transportId?.toString()}>
-                                        <TableCell className="font-medium">{device.model || '未知设备'}</TableCell>
+                                {filteredDevices.map((device) => (
+                                    <TableRow key={device.serial + device.transportId?.toString()}>
+                                        <TableCell className="font-medium">{device.model || 'Unknown Device'}</TableCell>
+                                        <TableCell className="text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(`/device/${device.serial}`)}>
+                                                    <Smartphone className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="outline" size="icon" className="h-8 w-8">
+                                                    <Terminal className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="outline" size="icon" className="h-8 w-8">
+                                                    <Folder className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             <code className="text-xs bg-muted px-2 py-1 rounded">
                                                 {device.serial}
@@ -178,21 +194,8 @@ function DeviceList() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center justify-center gap-1">
-                                                <Badge className="size-2 rounded-full p-0" variant={getDeviceStateBadge(device.state).variant}/>
+                                                <Badge className="size-2 rounded-full p-0" variant={getDeviceStateBadge(device.state).variant} />
                                                 <span>{getDeviceStateBadge(device.state).label}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(`/device/${device.serial}`)}>
-                                                    <Smartphone className="h-4 w-4"/>
-                                                </Button>
-                                                <Button variant="outline" size="icon" className="h-8 w-8">
-                                                    <Terminal className="h-4 w-4"/>
-                                                </Button>
-                                                <Button variant="outline" size="icon" className="h-8 w-8">
-                                                    <Folder className="h-4 w-4"/>
-                                                </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -203,15 +206,15 @@ function DeviceList() {
                         <Empty>
                             <EmptyHeader>
                                 <EmptyMedia variant="icon">
-                                    <Smartphone className="h-6 w-6 text-muted-foreground"/>
+                                    <Smartphone className="h-6 w-6 text-muted-foreground" />
                                 </EmptyMedia>
-                                <EmptyTitle>暂无设备</EmptyTitle>
-                                <EmptyDescription>请确保设备已连接到ADB服务器或刷新页面再试</EmptyDescription>
+                                <EmptyTitle>No Devices Found</EmptyTitle>
+                                <EmptyDescription>Please ensure usage of ADB or refresh the page</EmptyDescription>
                             </EmptyHeader>
                             <EmptyContent>
                                 <div className="flex gap-2">
-                                    <Button>刷新列表</Button>
-                                    <Button variant="outline">连接教程</Button>
+                                    <Button onClick={() => window.location.reload()}>Refresh</Button>
+                                    <Button variant="outline">Connection Guide</Button>
                                 </div>
                             </EmptyContent>
                             <Button
@@ -220,7 +223,7 @@ function DeviceList() {
                                 className="text-muted-foreground"
                                 size="sm">
                                 <a href="#">
-                                    Learn More <ArrowUpRightIcon/>
+                                    Learn More <ArrowUpRightIcon />
                                 </a>
                             </Button>
                         </Empty>
@@ -236,8 +239,8 @@ function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<DeviceList/>}/>
-                <Route path="/device/:serial" element={<DeviceDetail/>}/>
+                <Route path="/" element={<DeviceList />} />
+                <Route path="/device/:serial" element={<DeviceDetail />} />
             </Routes>
         </Router>
     )
