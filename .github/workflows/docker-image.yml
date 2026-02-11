@@ -72,13 +72,13 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t myapp:latest .
-          docker save myapp:latest -o app-image.tar
-          gzip app-image.tar
+          docker build -t android_manager_scrcpy:latest .
+          docker save android_manager_scrcpy:latest -o android_manager_scrcpye.tar
+          gzip android_manager_scrcpy.tar
 
       - name: Upload Docker image as artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
-          path: app-image.tar.gz
+          path: android_manager_scrcpy.tar.gz
           retention-days: 7
