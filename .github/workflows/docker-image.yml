@@ -1,0 +1,84 @@
+name: Build Frontend & Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 1. 安装 ADB（用户要求）
+      - name: Install ADB
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y adb
+          adb --version
+
+      # 2. 安装依赖
+      - name: Install dependencies
+        run: npm ci
+
+      # 3. 配置 SQLite 数据库环境
+      #    创建空目录用于存放数据库文件，避免权限问题
+      - name: Setup SQLite database
+        run: |
+          mkdir -p data
+          echo "DATABASE_URL=file:./data/dev.db" >> $GITHUB_ENV
+
+      # 4. 生成并推送数据库 Schema（SQLite）
+      - name: Push database schema
+        run: npm run db:push
+
+      # 5. （可选）填充种子数据
+      - name: Seed database
+        run: npm run db:seed
+
+      # 6. 构建前端生产版本（输出到 dist/）
+      - name: Build frontend
+        run: npm run build
+
+      # -------------------------------------------------
+      # 打包前端构建产物（仅 dist 目录）
+      # -------------------------------------------------
+      - name: Package frontend dist
+        run: |
+          zip -r frontend-dist.zip dist/
+
+      - name: Upload frontend dist as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-dist.zip
+          retention-days: 7
+
+      # -------------------------------------------------
+      # 构建 Docker 镜像并保存为 tar 文件
+      # -------------------------------------------------
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t myapp:latest .
+          docker save myapp:latest -o app-image.tar
+          gzip app-image.tar
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: app-image.tar.gz
+          retention-days: 7
